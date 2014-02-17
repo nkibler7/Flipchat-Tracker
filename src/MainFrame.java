@@ -45,10 +45,65 @@ import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EtchedBorder;
 
-
+/***********************************************************************
+ ** Flipchat Tracker - The easiest way to track your Runescape flips! **
+ ***********************************************************************
+ *
+ * This code is committed for use by the FlipchatRS community (flipchatrs.com).
+ * The use of this code for other purposes or by other communities, which includes,
+ * but is not limited to, full application use, partial code use, full code use,
+ * and code modification, is strictly prohibited. Doing so will cause this code
+ * to become closed-source and support will end on the open source version.
+ * Please keep it open source!
+ * 
+ * 
+ * -- GENERAL LOGIC --
+ * The basic format of how the program works is pretty simple: you can only
+ * have up to 6 items trading at one time (per G.E. restriction in game). 
+ * So to make it easy and prevent the unnecessary creation/deletion of Swing
+ * components on the fly, the 6 item panes are created once and displayed/hidden
+ * to simulate dynamic item pane creation. In order to do this, the panes'
+ * information must be movable (to shift items 'down the line' when an item
+ * pane is hidden), which presents an extra challenge when it comes to managing
+ * the timers.
+ * 
+ * -- TIMER LOGIC --
+ * Each timer is bound to a specific JLabel object. Because of this, there's
+ * technically two ways to correctly change the timer: change the counter it's
+ * using or change the label it's updating. I chose the former for no particular
+ * reason.
+ * 
+ * -- BUY RESTRICTION LOGIC --
+ * Buy restrictions are dynamic JPanels that are absolutely positioned in a
+ * scrollable JPanel. "Why?" you might ask. The short answer is because I said
+ * so. Be my guest to use any other Swing layout format, but good luck. Personally,
+ * I can't be bothered with figuring out why GroupLayouts are such a good concept,
+ * but are so terribly difficult to correctly implement, but I digress. These
+ * panels too have a timer, but since these panels aren't static and are physically
+ * moving on an update, it's common sense for the timer to be bound to the JLabel
+ * for life. Basic ideology of removal is to remove from the list, remove all
+ * buy restriction panels from the main JPanel, update indices of following panels, 
+ * and redraw the main JPanel. It was faster for me to write it this way than to
+ * calculate the new JPanel pixel offsets. If it comes to a point where this is
+ * hindering the application, again, be my guest to rewrite it.
+ * 
+ * -- PROFIT LOGIC --
+ * This is very similar to the explanation above for the buy restriction panel.
+ * Panels are dynamic, except there is no need for removal. Profit is calculated when
+ * item is marked as sold, at which point the profit is added to the total profit
+ * and the hourly profit is updated.
+ * 
+ * @author i96
+ */
 @SuppressWarnings({ "serial" })
 public class MainFrame extends JFrame {
+	
+	//TODO: Update before pushing changes to new release number
+	private String version = "1.02";
 
+	/*
+	 * Some JPanels, JLabels, etc. are global for easy interaction between features.
+	 */
 	private JPanel contentPane;
 	private static JPanel buy_restr_panel, profit_panel;
 	private static JLabel lblNoItemsIn, total_profit_label, profit_hour_label, total_time_label, adjust_dialog_idx_label;
@@ -74,23 +129,32 @@ public class MainFrame extends JFrame {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
+					// Sometimes the look and feel gets defaulted to something other than the system's default
 					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+					
+					// Create our JFrames and make the main JFrame visible
 					MainFrame frame = new MainFrame();
 					frame.setVisible(true);
 					iFrame = new NewItemFrame();
 					aDialog = new AdjustPriceMarginsDialog();
 
+					// Create our timer that keeps track of how long we have been flipping
 					totalTimer = new Timer(1000, new ActionListener() {
 						@Override
 						public void actionPerformed(ActionEvent arg0) {
+							// Calculate our hours, minutes, and seconds
 							int currHours = totalSeconds / 3600;
 							int currMin = (totalSeconds - (currHours * 3600)) / 60;
 							int currSecs = totalSeconds - (currHours * 3600) - (currMin * 60);
+							
+							// Format our time string to display minutes and seconds with 2 digits always (e.g. 0:00:01)
 							total_time_label.setText(Math.abs(currHours) + ":" + String.format("%02d", Math.abs(currMin)) + ":" + String.format("%02d", Math.abs(currSecs)));
 							
+							// Calculate and display our profit per hour
 							int prof_hour = (int) (totalProfit * (3600.0 / (double)totalSeconds));
 							profit_hour_label.setText("$" + prof_hour + "K");
 							
+							// Increment our second counter
 							totalSeconds++;
 						}
 					});
@@ -107,10 +171,11 @@ public class MainFrame extends JFrame {
 	 */
 	public MainFrame() {
 		setResizable(false);
-		setTitle("Flipchat Tracker - Created by i96 - v1.02");
+		setTitle("Flipchat Tracker - Created by i96 - v" + version);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 685, 490);
 		
+		// Set location of window to be in center of user's screen
 		Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setLocation(dim.width/2-this.getSize().width/2, dim.height/2-this.getSize().height/2);
 		
@@ -124,17 +189,24 @@ public class MainFrame extends JFrame {
 		mnAddItem.setSelectedIcon(null);
 		mnFile.add(mnAddItem);
 		
+		/*
+		 * The menu item below is fully commented for explanation of the process.
+		 * Other menu items are not commented to avoid repetition.
+		 */
 		JMenuItem mntmArmadylLine = new JMenuItem("Armadyl Line");
 		mntmArmadylLine.addActionListener(new ActionListener() {
 			@SuppressWarnings({ "unchecked", "rawtypes" })
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				ArrayList<String> items = new ArrayList<String>((Collection<String>) new HashSet<String>(Arrays.asList(new String[]{"AH - Armadyl helmet", "ACP - Armadyl chestplate", "ACS - Armadyl chainskirt", "AG - Armadyl gloves", "AB - Armadyl boots", "ACB - Armadyl crossbow", "BUCK - Armadyl buckler"})));
+				// Form new ArrayList from the array of Strings, which are the item descriptions
+				ArrayList<String> items = new ArrayList<String>(Arrays.asList(new String[]{"AH - Armadyl helmet", "ACP - Armadyl chestplate", "ACS - Armadyl chainskirt", "AG - Armadyl gloves", "AB - Armadyl boots", "ACB - Armadyl crossbow", "BUCK - Armadyl buckler"}));
+				// Check to make sure the item isn't on a buy restriction; if so, remove it from the list
 				for (BuyRestriction br: buyRestrictions) {
 					if (items.contains(br.getDesc())) {
 						items.remove(br.getDesc());
 					}
 				}
+				// Set the values of the JFrame accordingly and display the window
 				iFrame.itemComboBox.setModel(new DefaultComboBoxModel(items.toArray()));
 				iFrame.rdbtnBuying.setSelected(true);
 				iFrame.marginSellTextField.setText("");
@@ -233,38 +305,45 @@ public class MainFrame extends JFrame {
 		JMenuItem mntmBoughtsold = new JMenuItem("Bought/Sold");
 		mntmBoughtsold.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				// Determine the index number of the button that was selected
 				int idx = 0;
 				for (JRadioButton btn: itemSelectArray) {
 					if (btn.isSelected())
 						break;
 					idx++;
 				}
+				// If idx == 6, we know there was no selection. If idx > 6, well, that's just weird.
 				if (idx < 6) {
+					// Check to see if we are buying or selling this item
 					if (itemStatusArray.get(idx).getText().equals("BUYING")) {
+						// Reset some things and mark it as selling
 						itemStatusArray.get(idx).setText("SELLING");
 						itemStatusArray.get(idx).setForeground(new Color(72, 61, 139));
 						itemPriceArray.get(idx).setText("$" + marginArray[idx][1] + "K");
 						itemRulesArray.get(idx).setText("0");
 						timerArray.get(idx).resetTimer();
 						
-						String desc = itemDescArray.get(idx).getText();
+						// Calculate x and y positions for the buy restriction
 						int arrSize = buyRestrictions.size();
 						int row = arrSize / 3;
 						int col = arrSize % 3;
 						int x = (col * 202) + 10;
 						int y = (row * 32) + 11;
 						
+						// Make and display the buy restriction
 						JPanel panel = new JPanel();
 						panel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 						panel.setBounds(x, y, 192, 28);
 						buy_restr_panel.add(panel);
 						panel.setLayout(null);
 						
+						String desc = itemDescArray.get(idx).getText();
 						JLabel lblDesc = new JLabel(desc);
 						lblDesc.setToolTipText(desc);
 						lblDesc.setBounds(10, 0, 130, 28);
 						panel.add(lblDesc);
 						
+						// Set timer for our buy restriction to 4 hours
 						JLabel lblTime = new JLabel("4:00:00");
 						lblTime.setForeground(new Color(205, 133, 63));
 						lblTime.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -272,28 +351,33 @@ public class MainFrame extends JFrame {
 						lblTime.setBounds(144, 0, 41, 28);
 						panel.add(lblTime);
 						
+						// Update the buy restriction panel
 						buy_restr_panel.revalidate();
 						buy_restr_panel.repaint();
 						
 						BuyRestriction br = new BuyRestriction(desc, panel, lblTime, arrSize);
 						buyRestrictions.add(br);
 						
+						// Add it to the list of items that we have bought so far
 						boughtItems.add(desc);
 					}
 					else {
 						String desc = itemDescArray.get(idx).getText();
 						
+						// Since we're selling this, do this profit stuff only if we bought it
 						if (boughtItems.contains(desc)) {
 							boughtItems.remove(desc);
 							int profit = buySellArray[idx][1] - buySellArray[idx][0];
 							totalProfit += profit;
 							total_profit_label.setText("$" + totalProfit + "K");
 							
+							// Calculate x and y positions for the profit summary
 							int row = profitItems / 3;
 							int col = profitItems++ % 3;
 							int x = (col * 204) + 10;
 							int y = (row * 46) + 11;
 							
+							// Make and display the profit summary
 							JPanel panel = new JPanel();
 							panel.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 							panel.setBounds(x, y, 194, 35);
@@ -312,10 +396,12 @@ public class MainFrame extends JFrame {
 							profit_label.setBounds(133, 0, 51, 35);
 							panel.add(profit_label);
 							
+							// Update our profit panel
 							profit_panel.revalidate();
 							profit_panel.repaint();
 						}
 						
+						// Shift the following items down 
 						for (int i = idx; i < (numItems - 1); i++) {
 							itemStatusArray.get(i).setText(itemStatusArray.get(i+1).getText());
 							itemStatusArray.get(i).setForeground(itemStatusArray.get(i+1).getForeground());
@@ -332,9 +418,12 @@ public class MainFrame extends JFrame {
 							marginArray[i][0] = marginArray[i+1][0];
 							marginArray[i][1] = marginArray[i+1][1];
 						}
+						// Hide the last panel
 						itemPanelArray.get(--numItems).setVisible(false);
+						// Stop the last panel's timer (maybe helps performance?)
 						timerArray.get(numItems).stop();
 					}
+					// Clear the selection
 					tradingItemsButtonGroup.clearSelection();
 				}
 			}
