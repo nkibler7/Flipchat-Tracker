@@ -66,6 +66,17 @@ import javax.swing.border.EtchedBorder;
  * information must be movable (to shift items 'down the line' when an item
  * pane is hidden), which presents an extra challenge when it comes to managing
  * the timers.
+ * TODO: [UPDATE] Just kidding. This is stupid of me. Going to change to dynamic
+ * adding/removing of panels. Why? The real question is why not. Originally I was
+ * lazy (just wanted to make the panels in the beginning and set texts dynamically).
+ * But that's soooo lazy. Plus, it actually makes it harder in the end (shifting and
+ * keeping track of all that). So, this will be changed, especially considering
+ * the implementation of item amounts (i.e. 10/4 items).
+ * TODO: Along with the todo above, have to fix how we identify the items. Currently
+ * it's by description. Well, what if you want to buy/sell more than one of the
+ * same item at different prices? That's a new problem we face with multiple amounts.
+ * Considering the implementation of a unique identifier for each item panel.
+ * As for buy restrictions, have to make sure to cross check the description here.
  * 
  * -- TIMER LOGIC --
  * Each timer is bound to a specific JLabel object. Because of this, there's
@@ -430,6 +441,7 @@ public class MainFrame extends JFrame {
 		});
 		mnEdit.add(mntmBoughtsold);
 		
+		// Let's apply a 25 minute rule to the item
 		JMenuItem mntmApplyRule = new JMenuItem("Apply rule");
 		mntmApplyRule.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -441,14 +453,19 @@ public class MainFrame extends JFrame {
 				}
 				if (idx < 6) {
 					String desc = itemDescArray.get(idx).getText();
+					// If item is VENG, MAL, or MERC, amount should be 250k. Else, 25k
 					int ruleAmt = (desc.startsWith("VENG") || desc.startsWith("MAL") || desc.startsWith("MERC")) ? 250: 25;
 					if (itemStatusArray.get(idx).getText().equals("BUYING")) {
+						// Increment our buy/sell array
 						buySellArray[idx][0] += ruleAmt;
+						// Change text of labels in item panel
 						itemPriceArray.get(idx).setText("$" + buySellArray[idx][0] + "K");
 						itemRulesArray.get(idx).setText("" + (Integer.parseInt(itemRulesArray.get(idx).getText()) + 1));
+						// Reset the timer
 						timerArray.get(idx).resetTimer();
 					}
 					else {
+						// Decrement our buy/sell array
 						buySellArray[idx][1] -= ruleAmt;
 						itemPriceArray.get(idx).setText("$" + buySellArray[idx][1] + "K");
 						itemRulesArray.get(idx).setText("" + (Integer.parseInt(itemRulesArray.get(idx).getText()) + 1));
@@ -460,6 +477,7 @@ public class MainFrame extends JFrame {
 		});
 		mnEdit.add(mntmApplyRule);
 		
+		// Prepare the adjust price/margins window for the selected item
 		JMenuItem mntmAdjustPricemargins = new JMenuItem("Adjust price/margins");
 		mntmAdjustPricemargins.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -473,14 +491,18 @@ public class MainFrame extends JFrame {
 					String desc = itemDescArray.get(idx).getText();
 					adjust_dialog_idx_label.setText("" + idx);
 					aDialog.desc_label.setText(desc);
+					// If we're buying, set price field to the buy amt stored in buy/sell array
 					if (itemStatusArray.get(idx).getText().equals("BUYING")) {
 						aDialog.price_field.setText("" + buySellArray[idx][0]);
 					}
+					// If selling, set price field to sell amt from array
 					else {
 						aDialog.price_field.setText("" + buySellArray[idx][1]);
 					}
 					aDialog.buy_field.setText("" + marginArray[idx][0]);
 					aDialog.sell_field.setText("" + marginArray[idx][1]);
+					
+					// Modal set prevents user from interacting with MainFrame until close
 					aDialog.setModal(true);
 					aDialog.setVisible(true);
 				}
@@ -491,6 +513,7 @@ public class MainFrame extends JFrame {
 		JSeparator separator_1 = new JSeparator();
 		mnEdit.add(separator_1);
 		
+		// Let's remove the item, but keep the buy restriction
 		JMenuItem mntmDeleteItem = new JMenuItem("Delete item");
 		mntmDeleteItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -501,6 +524,7 @@ public class MainFrame extends JFrame {
 					idx++;
 				}
 				if (idx < 6) {
+					// Do the shift again
 					for (int i = idx; i < (numItems - 1); i++) {
 						itemStatusArray.get(i).setText(itemStatusArray.get(i+1).getText());
 						itemStatusArray.get(i).setForeground(itemStatusArray.get(i+1).getForeground());
@@ -517,6 +541,8 @@ public class MainFrame extends JFrame {
 						marginArray[i][0] = marginArray[i+1][0];
 						marginArray[i][1] = marginArray[i+1][1];
 					}
+					// Same as marking as sold, but do no profit stuff; technically could externalize
+					// code into a method to avoid code duplication. I'll do that eventually
 					itemPanelArray.get(--numItems).setVisible(false);
 					timerArray.get(numItems).stop();
 					tradingItemsButtonGroup.clearSelection();
@@ -525,6 +551,10 @@ public class MainFrame extends JFrame {
 		});
 		mnEdit.add(mntmDeleteItem);
 		
+		/*
+		 * Bunch of self-explanatory WindowBuilder stuff below. If you want specifics, look
+		 * up Java Swing.
+		 */
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(10, 10, 10, 10));
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -1080,8 +1110,13 @@ public class MainFrame extends JFrame {
 		scrollPane.setViewportView(buy_restr_panel);
 		buy_restr_panel.setLayout(null);
 		
-		
-		//Array sets
+		/*
+		 * It's array setup time!
+		 * TODO: As mentioned in the class comments, this is stupid. I need to fix this.
+		 * It would be much more of the "OO way" to make a custom class that extends a JPanel
+		 * for the item panels. That way all these labels and crap are internal. Looking
+		 * back at this, wow this is bad. Sorry :(
+		 */
 		itemPanelArray = new ArrayList<JPanel>();
 		itemPanelArray.add(item_panel_1);
 		itemPanelArray.add(item_panel_2);
@@ -1090,7 +1125,7 @@ public class MainFrame extends JFrame {
 		itemPanelArray.add(item_panel_5);
 		itemPanelArray.add(item_panel_6);
 		
-		//Hide panels
+		// Hide all of the item panels initially
 		for (JPanel p: itemPanelArray) {
 			p.setVisible(false);
 		}
