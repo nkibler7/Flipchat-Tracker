@@ -7,7 +7,7 @@ import java.util.ArrayList;
  * @author i96
  *
  */
-public class ItemCollection {
+public class ItemCollectionManager {
 	private ArrayList<Item> armadylLine, bandosLine, subjugationLine, shieldLine, miscellaneousLine;
 	private ArrayList<Item> restrictedList;
 	
@@ -15,7 +15,7 @@ public class ItemCollection {
 	 * Creates a new ItemCollection that holds and handles all of the lists of items.
 	 * Use an instance of this object to add/remove items to/from the restricted list.
 	 */
-	public ItemCollection() {
+	public ItemCollectionManager() {
 		armadylLine = new ArrayList<Item>();
 		armadylLine.add(new Item("AH", "Armadyl helmet", ItemLine.ARMADYL, 25, 1));
 		armadylLine.add(new Item("ACP", "Armadyl chestplate", ItemLine.ARMADYL, 25, 1));

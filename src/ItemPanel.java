@@ -283,7 +283,7 @@ public class ItemPanel extends JPanel {
 	 * Helper function that marks the item as selling, changing everything that
 	 * needs to be changed when the switch from buying to selling happens.
 	 */
-	public void markAsSelling(ItemCollection itemCollection) {
+	public void markAsSelling(ItemCollectionManager itemCollection) {
 		this.setStatus(ItemStatus.SELLING);
 		this.setPriceSell(marginSell);
 		timer.resetTimer();

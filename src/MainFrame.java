@@ -36,6 +36,8 @@ import javax.swing.ScrollPaneConstants;
  * to become closed-source and support will end on the open source version.
  * Please keep it open source!
  * 
+ * This is the main class, or the "controller", if you will. It handles the
+ * instantiation and display of all other subframes, subpanels, etc. 
  * 
  * @author i96
  */
@@ -47,15 +49,15 @@ public class MainFrame extends JFrame {
 	private static final long serialVersionUID = 1L;
 
 	//TODO: Update before pushing changes to new release number
-	private String version = "1.02";
+	private String version = "1.1.0";
 
 	private JPanel contentPane;
 	private JLabel lblNoItemsIn;
 	private NewItemFrame iFrame;
 	private AdjustPriceMarginsDialog aDialog;
-	private final static ButtonGroup tradingItemsButtonGroup = new ButtonGroup();
+	private ButtonGroup tradingItemsButtonGroup = new ButtonGroup();
 	private ArrayList<ItemPanel> itemPanels;
-	private static ItemCollection itemCollection;
+	private ItemCollectionManager itemCollection;
 	private BuyRestrictionsPanel buyRestrictionsPanel;
 	private ProfitsPanel profitsPanel;
 	private JPanel itemsPanel;
@@ -66,16 +68,13 @@ public class MainFrame extends JFrame {
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				try {
-					itemCollection = new ItemCollection();
-					
+				try {				
 					// Sometimes the look and feel gets defaulted to something other than the system's default
 					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 					
 					// Create our JFrames and make the main JFrame visible
 					MainFrame frame = new MainFrame();
 					frame.setVisible(true);
-					
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -87,6 +86,7 @@ public class MainFrame extends JFrame {
 	 * Create the MainFrame.
 	 */
 	public MainFrame() {
+		itemCollection = new ItemCollectionManager();
 		iFrame = new NewItemFrame(this);
 		aDialog = new AdjustPriceMarginsDialog(this);
 		
