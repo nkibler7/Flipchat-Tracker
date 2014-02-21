@@ -41,6 +41,7 @@ public class BuyRestrictionsPanel extends JPanel implements Observer {
 	 */
 	private void redraw() {
 		this.removeAll();
+		this.setPreferredSize(new Dimension(10, 10));
 		
 		int count = 0;
 		for (BuyRestriction currBr: list) {
